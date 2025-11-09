@@ -1,14 +1,20 @@
 import createHttpError from 'http-errors';
-import { Product } from '../models/product.js';
+import {
+  createProductService,
+  deleteProductByIdService,
+  getAllProductsService,
+  getProductByIdService,
+  updateProductService,
+} from '../services/product.js';
 
 export const getProducts = async (req, res) => {
-  const products = await Product.find();
+  const products = await getAllProductsService();
   res.status(200).json(products);
 };
 
 export const getProductById = async (req, res) => {
   const { productId } = req.params;
-  const product = await Product.findById(productId);
+  const product = await getProductByIdService(productId);
   if (!product) {
     throw createHttpError(404, 'Product not found');
   }
@@ -16,15 +22,13 @@ export const getProductById = async (req, res) => {
 };
 
 export const createProduct = async (req, res) => {
-  const product = await Product.create(req.body);
+  const product = await createProductService(req.body);
   res.status(201).json(product);
 };
 
 export const updateProduct = async (req, res) => {
   const { productId } = req.params;
-  const product = await Product.findOneAndUpdate({ _id: productId }, req.body, {
-    new: true,
-  });
+  const product = await updateProductService(productId, req.body);
   if (!product) {
     throw createHttpError(404, 'Product not found');
   }
@@ -33,7 +37,7 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProductById = async (req, res) => {
   const { productId } = req.params;
-  const product = await Product.findOneAndDelete({ _id: productId });
+  const product = await deleteProductByIdService(productId);
   if (!product) {
     throw createHttpError(404, 'Product not found');
   }
