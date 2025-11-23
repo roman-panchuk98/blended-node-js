@@ -31,6 +31,10 @@ export const loginUser = async (req, res) => {
     throw createHttpError(401, 'Password is wrong');
   }
 
+  await Session.deleteOne({
+    userId: user._id,
+  });
+
   const newSession = await createSession(user._id);
   setSessionCookies(res, newSession);
   res.status(200).json(user);
@@ -46,4 +50,35 @@ export const logoutUser = async (req, res) => {
   res.clearCookie(SESSION_KEYS.REFRESH_TOKEN);
 
   res.status(204).send();
+};
+
+
+
+export const refreshUserSession = async (req, res) => {
+
+  const session = await Session.findOne({
+    _id: req.cookies[SESSION_KEYS.SESSION_ID],
+    refreshToken: req.cookies[SESSION_KEYS.REFRESH_TOKEN],
+  });
+
+  if (!session) {
+    throw createHttpError(401, 'Session not found');
+  }
+
+  const isSesionToken = new Date() > new Date(session.refreshTokenValidUntil);
+  if (isSesionToken) {
+    throw createHttpError(401, "Session token expired");
+  }
+
+  await Session.deleteOne({
+    _id: req.cookies[SESSION_KEYS.SESSION_ID],
+    refreshToken: req.cookies[SESSION_KEYS.REFRESH_TOKEN],
+  });
+
+  const newSession = await createSession(session.userId);
+  setSessionCookies(res, newSession);
+
+  res.status(200).json({
+    message: "Successfully refreshed a session!"
+  });
 };
