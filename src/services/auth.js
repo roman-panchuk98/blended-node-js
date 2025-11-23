@@ -1,3 +1,4 @@
+import { SESSION_KEYS } from '../constans/index.js';
 import { FIFTEEN_MINUTES, ONE_DAY } from '../constans/time.js';
 import { Session } from '../models/session.js';
 import crypto from 'crypto';
@@ -16,19 +17,19 @@ export const createSession = async (userId) => {
 };
 
 export const setSessionCookies = (res, session) => {
-  res.cookie('accessToken', session.accessToken, {
+  res.cookie(SESSION_KEYS.ACCESS_TOKEN, session.accessToken, {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
     maxAge: FIFTEEN_MINUTES,
   });
-  res.cookie('refreshToken', session.refreshToken, {
+  res.cookie(SESSION_KEYS.REFRESH_TOKEN, session.refreshToken, {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
     maxAge: ONE_DAY,
   });
-  res.cookie('sessionId', session._id, {
+  res.cookie(SESSION_KEYS.SESSION_ID, session._id, {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
