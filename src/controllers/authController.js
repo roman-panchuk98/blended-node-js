@@ -1,6 +1,7 @@
 import createHttpError from 'http-errors';
 import { User } from '../models/user.js';
 import bcrypt from 'bcrypt';
+import { createSession, setSessionCookies } from '../services/auth.js';
 
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -13,4 +14,22 @@ export const registerUser = async (req, res) => {
   const newUser = await User.create({ name, email, password: hashedPass });
 
   res.status(201).json(newUser);
+};
+
+export const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw createHttpError(401, 'Email or Password is wrong');
+  }
+
+  const isVaildPassword = await bcrypt.compare(password, user.password);
+  if (!isVaildPassword) {
+    throw createHttpError(401, 'Password is wrong');
+  }
+
+  const newSession = await createSession(user._id);
+  setSessionCookies(res, newSession);
+  res.status(200).json(user);
 };
