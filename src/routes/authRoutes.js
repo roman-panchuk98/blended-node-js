@@ -13,7 +13,10 @@ import {
   registerUser,
   requestResetEmail,
   resetPassword,
+  updateUserAvatar,
 } from '../controllers/authController.js';
+import { upload } from '../middleware/upload.js';
+import { authenticate } from '../middleware/authenticate.js';
 const router = Router();
 
 router.post('/auth/register', celebrate(registerUserSchema), registerUser);
@@ -26,7 +29,16 @@ router.post(
   requestResetEmail,
 );
 
-router.post('/auth/reset-password', celebrate(resetPasswordSchema), resetPassword);
-
+router.post(
+  '/auth/reset-password',
+  celebrate(resetPasswordSchema),
+  resetPassword,
+);
+router.patch(
+  '/users/me/avatar',
+  authenticate,
+  upload.single('avatar'),
+  updateUserAvatar,
+);
 
 export default router;

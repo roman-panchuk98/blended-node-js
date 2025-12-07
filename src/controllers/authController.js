@@ -6,6 +6,7 @@ import { Session } from '../models/session.js';
 import { SESSION_KEYS } from '../constans/index.js';
 import { sendEmail } from '../utils/sendMail.js';
 import jwt from 'jsonwebtoken';
+import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
 
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -118,22 +119,20 @@ export const requestResetEmail = async (req, res) => {
   });
 };
 
-
 export const resetPassword = async (req, res) => {
-
   const { password, token } = req.body;
 
   let payloag;
   try {
     payloag = jwt.verify(token, process.env.JWT_SECRET);
   } catch {
-    throw createHttpError(401, " Invalid or expired token");
+    throw createHttpError(401, ' Invalid or expired token');
   }
 
   const user = await User.findOne({ _id: payloag.sub, email: payloag.email });
 
   if (!user) {
-    throw createHttpError(404, "User not found");
+    throw createHttpError(404, 'User not found');
   }
 
   const handlePassword = await bcrypt.hash(password, 10);
@@ -141,8 +140,21 @@ export const resetPassword = async (req, res) => {
 
   await Session.deleteMany({ userId: user._id });
 
-
   res.status(200).json({
-    message: 'Password reset successfully. Please log in again'
+    message: 'Password reset successfully. Please log in again',
   });
+};
+
+export const updateUserAvatar = async (req, res) => {
+  if (!req.file) {
+    throw createHttpError(400, 'No file');
+  }
+  const result = await saveFileToCloudinary(req.file.buffer);
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { avatar: result.secure_url },
+    { new: true },
+  );
+  res.status(200).json({ url: user.avatar });
 };
