@@ -4,6 +4,8 @@ import bcrypt from 'bcrypt';
 import { createSession, setSessionCookies } from '../services/auth.js';
 import { Session } from '../models/session.js';
 import { SESSION_KEYS } from '../constans/index.js';
+import { jwt } from 'jsonwebtoken';
+import { sendEmail } from '../utils/sendEmail.js';
 
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -52,10 +54,7 @@ export const logoutUser = async (req, res) => {
   res.status(204).send();
 };
 
-
-
 export const refreshUserSession = async (req, res) => {
-
   const session = await Session.findOne({
     _id: req.cookies[SESSION_KEYS.SESSION_ID],
     refreshToken: req.cookies[SESSION_KEYS.REFRESH_TOKEN],
@@ -67,7 +66,7 @@ export const refreshUserSession = async (req, res) => {
 
   const isSesionToken = new Date() > new Date(session.refreshTokenValidUntil);
   if (isSesionToken) {
-    throw createHttpError(401, "Session token expired");
+    throw createHttpError(401, 'Session token expired');
   }
 
   await Session.deleteOne({
@@ -79,6 +78,42 @@ export const refreshUserSession = async (req, res) => {
   setSessionCookies(res, newSession);
 
   res.status(200).json({
-    message: "Successfully refreshed a session!"
+    message: 'Successfully refreshed a session!',
+  });
+};
+
+export const requestResetEmail = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw createHttpError(404, 'user non found');
+  }
+
+  const resetToken = jwt.sign(
+    { sub: user._id, email },
+    process.env.JWT_SECRET,
+    { expiresIn: '20m' },
+  );
+
+  const link = `${process.env.FRONTEND_DOMAIN}/reset-password?token=${resetToken}`;
+
+  try {
+    await sendEmail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Reset your password',
+      html: `<p>Click <a href="${link}">here</a> to reset your password!</p>`,
+    });
+  } catch {
+    throw createHttpError(
+      500,
+      'Failed to send the email, please try again later.',
+    );
+  }
+
+  res.status(200).json({
+    message: 'Password reset email sent successfully',
   });
 };
